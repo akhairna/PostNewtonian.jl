@@ -1,5 +1,7 @@
 """
-    PNSystem{ST, PNOrder}
+    PNSystem{NT, ST, PNOrder}
+
+TODO UPDATE
 
 Base type for all PN systems, such as `BBH`, `BHNS`, and `NSNS`.
 
@@ -13,7 +15,22 @@ the given type of system.  The parameter `ST` is the type of the `state` vector 
 example, `Vector{Float64}`.  `PNOrder` is a `Rational` giving the order to which PN
 expansions should be carried.
 """
-abstract type PNSystem{ST,PNOrder} end
+abstract type PNSystem{NT,ST<:DenseVector{NT},PNOrder} <: DenseVector{NT} end
+
+"""
+    state(pnsystem::PNSystem)
+
+Return the state vector of `pnsystem`, which is a vector of fundamental variables for the
+given PN system.
+
+Note that the built-in `PNSystem` subtypes have a `state` field that is a vector, so this
+function will just return that vector.  However, that may not always be true for
+user-defined subtypes.
+"""
+function state(::T) where {T<:PNSystem}
+    error("`state` is not yet defined for PNSystem subtype `$T`.")
+end
+Base.vec(pnsystem::PNSystem) = state(pnsystem)
 
 const VecOrPNSystem = Union{AbstractVector,PNSystem}
 
@@ -30,15 +47,41 @@ const χ⃗₁indices = χ⃗₁ˣindex:χ⃗₁ᶻindex
 const χ⃗₂indices = χ⃗₂ˣindex:χ⃗₂ᶻindex
 const Rindices = Rʷindex:Rᶻindex
 
-Base.eltype(::Type{PNT}) where {ST,PNT<:PNSystem{ST}} = eltype(ST)
-Base.one(x::T) where {T<:PNSystem} = one(T)
-Base.zero(x::T) where {T<:PNSystem} = zero(T)
-Base.float(x::T) where {T<:PNSystem} = float(T)
+Base.eltype(::Type{PNT}) where {NT,PNT<:PNSystem{NT}} = NT
 Base.one(::Type{PNT}) where {PNT<:PNSystem} = one(eltype(PNT))
+Base.one(x::T) where {T<:PNSystem} = one(T)
 Base.zero(::Type{PNT}) where {PNT<:PNSystem} = zero(eltype(PNT))
+Base.zero(x::T) where {T<:PNSystem} = zero(T)
 Base.float(::Type{PNT}) where {PNT<:PNSystem} = float(eltype(PNT))
-pn_order(::PNSystem{ST,PNOrder}) where {ST,PNOrder} = PNOrder
+Base.float(x::T) where {T<:PNSystem} = float(T)
+
+
+"""
+    pn_order(pnsystem::PNSystem)
+
+Return the PN order of the given `pnsystem`.
+
+This is a `Rational{Int}` that indicates the order to which the PN expansions should be
+carried out when using the given object.
+"""
+pn_order(::PNSystem{NT,ST,PNOrder}) where {NT,ST,PNOrder} = PNOrder
+
+"""
+    order_index(pnsystem::PNSystem)
+
+Return the order index of the given `pnsystem`.
+
+This is defined as the (one-based) index into an iterable of PN terms starting at 0pN, then
+0.5pN, etc.  Specifically, this is defined as `1 + Int(2pn_order(pnsystem))`.
+"""
 order_index(pn::PNSystem) = 1 + Int(2pn_order(pn))
+
+"""
+    max_pn_order
+
+The maximum PN order that can be used without overflowing the `Int` type.
+"""
+const max_pn_order = (typemax(Int) - 2) // 2
 
 """
     causes_domain_error!(u̇, p)
@@ -52,9 +95,9 @@ by the ODE solver and cause it to try a different (smaller) step size.
 Currently, the only check that is done is to test that these parameters result in a PN
 parameter v>0.  In the future, this function may be expanded to include other checks.
 """
-function causes_domain_error!(u̇, p::PNSystem{VT}) where {VT}
+function causes_domain_error!(u̇, p::PNSystem{NT}) where {NT}
     if p.state[vindex] ≤ 0  # If this is expanded, document the change in the docstring.
-        u̇ .= convert(eltype(VT), NaN)
+        u̇ .= convert(NT, NaN)
         true
     else
         false
@@ -64,15 +107,24 @@ end
 function prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ=0, PNOrder=typemax(Int))
     state = [M₁; M₂; vec(QuatVec(χ⃗₁)); vec(QuatVec(χ⃗₂)); components(Rotor(R)); v; Φ]
     ST = typeof(state)
+    NT = eltype(ST)
     PNOrder = prepare_pn_order(PNOrder)
-    return (ST, PNOrder, state)
+    return (NT, ST, PNOrder, state)
 end
 
+"""
+    prepare_pn_order(PNOrder)
+
+Convert the input to a half-integer of type `Rational{Int}`.
+
+If `PNOrder` is larger than `max_pn_order`, it is set to `max_pn_order`, to avoid overflow
+when computing the order index.
+"""
 function prepare_pn_order(PNOrder)
-    if PNOrder != typemax(Int)
+    if PNOrder < max_pn_order
         round(Int, 2PNOrder)//2
     else
-        (typemax(Int) - 2)//2
+        max_pn_order
     end
 end
 
@@ -89,22 +141,45 @@ Optionally, `Φ` may also be tracked as the 14th element of the `state` vector. 
 the integral of the orbital angular frequency `Ω`, and holds little interest for general
 systems beyond a convenient description of how "far" the system has evolved.
 """
-struct BBH{T,PNOrder} <: PNSystem{T,PNOrder}
-    state::T
+struct BBH{NT,ST,PNOrder} <: PNSystem{NT,ST,PNOrder}
+    state::ST
 
-    BBH{T,PNOrder}(state) where {T,PNOrder} = new{T,PNOrder}(state)
+    BBH{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
     function BBH(; M₁, M₂, χ⃗₁, χ⃗₂, v, R=Rotor(1), Φ=0, PNOrder=typemax(Int), kwargs...)
-        (T, PNOrder, state) = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
-        return new{T,PNOrder}(state)
+        (NT, ST, PNOrder, state) = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
+        return new{NT,ST,PNOrder}(state)
     end
     function BBH(state; Λ₁=0, Λ₂=0, PNOrder=typemax(Int))
         @assert length(state) == 14
         @assert Λ₁ == 0
         @assert Λ₂ == 0
-        return new{typeof(state),prepare_pn_order(PNOrder)}(state)
+        return new{eltype(state),typeof(state),prepare_pn_order(PNOrder)}(state)
     end
 end
 const BHBH = BBH
+
+# The following are methods of functions defined in `state_variables.jl`, specialized for
+# `BBH` systems.
+state(pnsystem::BBH) = pnsystem.state
+function symbols(::Type{<:BBH})
+    (:M₁, :M₂, :χ⃗₁ˣ, :χ⃗₁ʸ, :χ⃗₁ᶻ, :χ⃗₂ˣ, :χ⃗₂ʸ, :χ⃗₂ᶻ, :Rʷ, :Rˣ, :Rʸ, :Rᶻ, :v, :Φ)
+end
+function ascii_symbols(::Type{<:BBH})
+    (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi)
+end
+for (i, symbol) ∈ enumerate(symbols(BBH))
+    # This will define, e.g., `M₁(pnsystem::BBH) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval begin
+        $(symbol)(pnsystem::BBH) = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BBH}
+            $i
+        end
+    end
+end
+
+Λ₁(pnsystem::BBH) = zero(pnsystem)
+Λ₂(pnsystem::BBH) = zero(pnsystem)
 
 """
     BHNS{T, PNOrder}
@@ -117,26 +192,47 @@ holding the (constant) tidal-coupling parameter of the neutron star.
 Note that the neutron star is *always* object 2 — meaning that `M₂`, `χ⃗₂`, and `Λ₂` always
 refer to it; `M₁` and `χ⃗₁` always refer to the black hole.  See also [`NSNS`](@ref).
 """
-struct BHNS{ST,PNOrder,ET} <: PNSystem{ST,PNOrder}
+struct BHNS{NT,ST,PNOrder} <: PNSystem{NT,ST,PNOrder}
     state::ST
-    Λ₂::ET
+    Λ₂::NT
 
-    BHNS{T,PNOrder,ET}(state) where {T,PNOrder,ET} = new{T,PNOrder,ET}(state)
-    BHNS{T,PNOrder}(state) where {T,PNOrder} = new{T,PNOrder,eltype(T)}(state)
+    BHNS{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
     function BHNS(;
         M₁, M₂, χ⃗₁, χ⃗₂, v, R=Rotor(1), Λ₂, Φ=0, PNOrder=typemax(Int), kwargs...
     )
-        ST, PNOrder, state = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
-        ET = eltype(ST)
-        return new{ST,PNOrder,ET}(state, convert(ET, Λ₂))
+        NT, ST, PNOrder, state = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
+        return new{NT,ST,PNOrder}(state, convert(ET, Λ₂))
     end
     function BHNS(state; Λ₂, Λ₁=0, PNOrder=typemax(Int))
         @assert length(state) == 14
         ST, PNOrder = typeof(state), prepare_pn_order(PNOrder)
-        ET = eltype(ST)
-        return new{ST,PNOrder,ET}(state, convert(ET, Λ₂))
+        NT = eltype(ST)
+        return new{NT,ST,PNOrder}(state, convert(NT, Λ₂))
     end
 end
+
+# The following are methods of functions defined in `state_variables.jl`, specialized for
+# `BHNS` systems.
+state(pnsystem::BHNS) = pnsystem.state
+function symbols(::Type{<:BHNS})
+    (:M₁, :M₂, :χ⃗₁ˣ, :χ⃗₁ʸ, :χ⃗₁ᶻ, :χ⃗₂ˣ, :χ⃗₂ʸ, :χ⃗₂ᶻ, :Rʷ, :Rˣ, :Rʸ, :Rᶻ, :v, :Φ, :Λ₂)
+end
+function ascii_symbols(::Type{<:BHNS})
+    (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi, :Lambda2)
+end
+for (i, symbol) ∈ enumerate(symbols(BHNS))
+    # This will define, e.g., `M₁(pnsystem::BHNS) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval begin
+        $(symbol)(pnsystem::BHNS) = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BHNS}
+            $i
+        end
+    end
+end
+
+Λ₁(pnsystem::BHNS) = zero(pnsystem)
+#Λ₂(pnsystem::BHNS) = @inbounds pnsystem.state[15]
 
 """
     NSNS{T, PNOrder}
@@ -147,53 +243,74 @@ The `state` vector is the same as for a [`BBH`](@ref).  There are two additional
 and `Λ₂` holding the (constant) tidal-coupling parameters of the neutron stars.  See also
 [`BHNS`](@ref).
 """
-struct NSNS{ST,PNOrder,ET} <: PNSystem{ST,PNOrder}
+struct NSNS{NT,ST,PNOrder} <: PNSystem{NT,ST,PNOrder}
     state::ST
-    Λ₁::ET
-    Λ₂::ET
+    Λ₁::NT
+    Λ₂::NT
 
-    NSNS{T,PNOrder,ET}(state) where {T,PNOrder,ET} = new{T,PNOrder,ET}(state)
-    NSNS{T,PNOrder}(state) where {T,PNOrder} = new{T,PNOrder,eltype(T)}(state)
+    NSNS{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
     function NSNS(;
         M₁, M₂, χ⃗₁, χ⃗₂, v, R=Rotor(1), Λ₁, Λ₂, Φ=0, PNOrder=typemax(Int), kwargs...
     )
-        ST, PNOrder, state = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
-        ET = eltype(ST)
-        return new{ST,PNOrder,ET}(state, convert(ET, Λ₁), convert(ET, Λ₂))
+        NT, ST, PNOrder, state = prepare_system(; M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, PNOrder)
+        return new{NT,ST,PNOrder}(state, convert(NT, Λ₁), convert(NT, Λ₂))
     end
     function NSNS(state; Λ₁, Λ₂, PNOrder=typemax(Int))
         @assert length(state) == 14
         ST, PNOrder = typeof(state), prepare_pn_order(PNOrder)
-        ET = eltype(state)
-        return new{ST,PNOrder,ET}(state, convert(ET, Λ₁), convert(ET, Λ₂))
+        NT = eltype(state)
+        return new{NT,ST,PNOrder}(state, convert(NT, Λ₁), convert(NT, Λ₂))
     end
 end
 const BNS = NSNS
 
+# The following are methods of functions defined in `state_variables.jl`, specialized for
+# `NSNS` systems.
+state(pnsystem::NSNS) = pnsystem.state
+function symbols(::Type{<:NSNS})
+    (:M₁, :M₂, :χ⃗₁ˣ, :χ⃗₁ʸ, :χ⃗₁ᶻ, :χ⃗₂ˣ, :χ⃗₂ʸ, :χ⃗₂ᶻ, :Rʷ, :Rˣ, :Rʸ, :Rᶻ, :v, :Φ, :Λ₁, :Λ₂, )
+end
+function ascii_symbols(::Type{<:NSNS})
+    (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi, :Lambda1, :Lambda2,)
+end
+for (i, symbol) ∈ enumerate(symbols(NSNS))
+    # This will define, e.g., `M₁(pnsystem::NSNS) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval begin
+        $(symbol)(pnsystem::NSNS) = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:NSNS}
+            $i
+        end
+    end
+end
+
+#Λ₁(pnsystem::NSNS) = @inbounds pnsystem.state[15]
+#Λ₂(pnsystem::NSNS) = @inbounds pnsystem.state[16]
+
 """
-    FDPNSystem{FT, PNOrder}(state, Λ₁, Λ₂)
+    FDPNSystem{NT, PNOrder}(state, Λ₁, Λ₂)
 
 A `PNSystem` that contains information as variables from
 [`FastDifferentiation.jl`](https://docs.juliahub.com/General/FastDifferentiation/stable/).
 
 See also [`fd_pnsystem`](@ref) for a particular instance of this type.  Note that this type
-also involves the type `FT`, which will be the float type of actual numbers that eventually
+also involves the type `NT`, which will be the numeric type of actual numbers that eventually
 get fed into (and will be passed out from) functions that use this system.  The correct type
 of `FDPNSystem` is used in calculating `𝓔′`.
 """
-struct FDPNSystem{FT,PNOrder} <: PNSystem{Vector{FastDifferentiation.Node},PNOrder}
+struct FDPNSystem{NT,PNOrder} <: PNSystem{FastDifferentiation.Node,Vector{FastDifferentiation.Node},PNOrder}
     state::Vector{FastDifferentiation.Node}
     Λ₁::FastDifferentiation.Node
     Λ₂::FastDifferentiation.Node
 
-    function FDPNSystem(FT, PNOrder=typemax(Int))
+    function FDPNSystem(NT, PNOrder=typemax(Int))
         FastDifferentiation.@variables M₁ M₂ χ⃗₁ˣ χ⃗₁ʸ χ⃗₁ᶻ χ⃗₂ˣ χ⃗₂ʸ χ⃗₂ᶻ Rʷ Rˣ Rʸ Rᶻ v Φ Λ₁ Λ₂
-        return new{FT,prepare_pn_order(PNOrder)}(
+        return new{NT,prepare_pn_order(PNOrder)}(
             [M₁, M₂, χ⃗₁ˣ, χ⃗₁ʸ, χ⃗₁ᶻ, χ⃗₂ˣ, χ⃗₂ʸ, χ⃗₂ᶻ, Rʷ, Rˣ, Rʸ, Rᶻ, v, Φ], Λ₁, Λ₂
         )
     end
 end
-Base.eltype(::FDPNSystem{FT}) where {FT} = FT
+Base.eltype(::FDPNSystem{NT}) where {NT} = NT
 
 """
     fd_pnsystem

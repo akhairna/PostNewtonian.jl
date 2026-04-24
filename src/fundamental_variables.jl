@@ -89,8 +89,8 @@ as a keyword argument — as in `v(Ω=0.1)`.
 
 See also [`Ω`](@ref).
 """
-v(s::PNSystem) = v(s.state)
-v(state::AbstractVector) = @inbounds state[vindex]
+#v(s::PNSystem) = v(s.state)
+#v(state::AbstractVector) = @inbounds state[vindex]
 v(; Ω, M=1) = ∛(M * Ω)
 
 """
@@ -135,8 +135,8 @@ safe and efficient to use this quantity in any PN expression that specializes on
 See also [`Λ₂`](@ref) and [`Λ̃`](@ref).
 """
 Λ₁(pn::PNSystem) = zero(eltype(pn))
-Λ₁(pn::NSNS) = pn.Λ₁
-Λ₁(pn::FDPNSystem) = pn.Λ₁
+#Λ₁(pn::NSNS) = pn.Λ₁
+#Λ₁(pn::FDPNSystem) = pn.Λ₁
 const Lambda1 = Λ₁
 
 @doc raw"""
@@ -155,9 +155,9 @@ specializes on the type of `pnsystem`.
 See also [`Λ₁`](@ref) and [`Λ̃`](@ref).
 """
 Λ₂(pn::PNSystem) = zero(eltype(pn))
-Λ₂(pn::BHNS) = pn.Λ₂
-Λ₂(pn::NSNS) = pn.Λ₂
-Λ₂(pn::FDPNSystem) = pn.Λ₂
+#Λ₂(pn::BHNS) = pn.Λ₂
+#Λ₂(pn::NSNS) = pn.Λ₂
+#Λ₂(pn::FDPNSystem) = pn.Λ₂
 const Lambda2 = Λ₂
 
 end
