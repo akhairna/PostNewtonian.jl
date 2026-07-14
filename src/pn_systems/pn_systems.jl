@@ -47,7 +47,7 @@ const χ⃗₁indices = χ⃗₁ˣindex:χ⃗₁ᶻindex
 const χ⃗₂indices = χ⃗₂ˣindex:χ⃗₂ᶻindex
 const Rindices = Rʷindex:Rᶻindex
 
-Base.eltype(::Type{PNT}) where {NT,PNT<:PNSystem{NT}} = NT
+#Base.eltype(::Type{PNT}) where {NT,PNT<:PNSystem{NT}} = NT
 Base.one(::Type{PNT}) where {PNT<:PNSystem} = one(eltype(PNT))
 Base.one(x::T) where {T<:PNSystem} = one(T)
 Base.zero(::Type{PNT}) where {PNT<:PNSystem} = zero(eltype(PNT))
@@ -55,6 +55,38 @@ Base.zero(x::T) where {T<:PNSystem} = zero(T)
 Base.float(::Type{PNT}) where {PNT<:PNSystem} = float(eltype(PNT))
 Base.float(x::T) where {T<:PNSystem} = float(T)
 
+
+### Interfaces: https://docs.julialang.org/en/v1/manual/interfaces
+# Iteration
+Base.iterate(pnsystem::PNSystem) = iterate(state(pnsystem))
+Base.iterate(pnsystem::PNSystem, istate) = iterate(state(pnsystem), istate)
+Base.IteratorSize(::Type{T}) where {T<:PNSystem} = Base.HasShape{1}()
+Base.length(pnsystem::PNSystem) = length(state(pnsystem))
+Base.ndims(pnsystem::PNSystem) = ndims(state(pnsystem))
+Base.size(pnsystem::PNSystem) = size(state(pnsystem))
+Base.size(pnsystem::PNSystem, dim) = size(state(pnsystem), dim)
+Base.IteratorEltype(::Type{T}) where {T<:PNSystem} = Base.HasEltype()
+Base.eltype(::Type{<:PNSystem{NT}}) where {NT} = NT
+Base.isdone(pnsystem::PNSystem) = Base.isdone(state(pnsystem))
+Base.isdone(pnsystem::PNSystem, iterstate) = Base.isdone(state(pnsystem), iterstate)
+# Indexing
+#Base.getindex(pnsystem::PNSystem, i::Int) = Base.@propagate_inbounds getindex(state(pnsystem), i)
+#Base.setindex!(pn::PNSystem, v, i::Int) = Base.@propagate_inbounds setindex!(state(pn), v, i)
+Base.firstindex(pnsystem::PNSystem) = firstindex(state(pnsystem))
+Base.lastindex(pnsystem::PNSystem) = lastindex(state(pnsystem))
+Base.eachindex(pnsystem::PNSystem) = eachindex(state(pnsystem))
+# Abstract arrays
+Base.IndexStyle(::Type{T}) where {T<:PNSystem} = Base.IndexLinear()
+#Base.length(pnsystem::PNSystem) = length(state(pnsystem))
+# Base.similar(pnsystem::PNSystem) = similar(state(pnsystem))
+Base.axes(pnsystem::PNSystem) = axes(state(pnsystem))
+# Strided Arrays
+Base.strides(pnsystem::PNSystem) = strides(state(pnsystem))
+function Base.unsafe_convert(::Type{Ptr{T}}, A::PNSystem) where {T}
+    Base.unsafe_convert(Ptr{T}, state(A))
+end
+Base.elsize(::Type{<:PNSystem{T}}) where {T} = sizeof(T)
+Base.stride(pnsystem::PNSystem, k::Int) = stride(state(pnsystem), k)
 
 """
     pn_order(pnsystem::PNSystem)
@@ -129,7 +161,7 @@ function prepare_pn_order(PNOrder)
 end
 
 """
-    BBH{T, PNOrder}
+    BBH{NT, ST, PNOrder}
 
 The [`PNSystem`](@ref) subtype describing a binary black hole system.
 
@@ -167,19 +199,8 @@ end
 function ascii_symbols(::Type{<:BBH})
     (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi)
 end
-for (i, symbol) ∈ enumerate(symbols(BBH))
-    # This will define, e.g., `M₁(pnsystem::BBH) = pnsystem.state[1]`.  We
-    # could do this manually, but this is more concise and less error-prone.
-    @eval begin
-        $(symbol)(pnsystem::BBH) = @inbounds pnsystem.state[$i]
-        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BBH}
-            $i
-        end
-    end
-end
 
-Λ₁(pnsystem::BBH) = zero(pnsystem)
-Λ₂(pnsystem::BBH) = zero(pnsystem)
+# TODO the @eval's moved to fundamental_variables.jl
 
 """
     BHNS{T, PNOrder}
@@ -220,19 +241,6 @@ end
 function ascii_symbols(::Type{<:BHNS})
     (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi, :Lambda2)
 end
-for (i, symbol) ∈ enumerate(symbols(BHNS))
-    # This will define, e.g., `M₁(pnsystem::BHNS) = pnsystem.state[1]`.  We
-    # could do this manually, but this is more concise and less error-prone.
-    @eval begin
-        $(symbol)(pnsystem::BHNS) = @inbounds pnsystem.state[$i]
-        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BHNS}
-            $i
-        end
-    end
-end
-
-Λ₁(pnsystem::BHNS) = zero(pnsystem)
-#Λ₂(pnsystem::BHNS) = @inbounds pnsystem.state[15]
 
 """
     NSNS{T, PNOrder}
@@ -273,23 +281,11 @@ end
 function ascii_symbols(::Type{<:NSNS})
     (:M1, :M2, :chi1x, :chi1y, :chi1z, :chi2x, :chi2y, :chi2z, :Rw, :Rx, :Ry, :Rz, :v, :Phi, :Lambda1, :Lambda2,)
 end
-for (i, symbol) ∈ enumerate(symbols(NSNS))
-    # This will define, e.g., `M₁(pnsystem::NSNS) = pnsystem.state[1]`.  We
-    # could do this manually, but this is more concise and less error-prone.
-    @eval begin
-        $(symbol)(pnsystem::NSNS) = @inbounds pnsystem.state[$i]
-        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:NSNS}
-            $i
-        end
-    end
-end
-
-#Λ₁(pnsystem::NSNS) = @inbounds pnsystem.state[15]
-#Λ₂(pnsystem::NSNS) = @inbounds pnsystem.state[16]
 
 """
     FDPNSystem{NT, PNOrder}(state, Λ₁, Λ₂)
 
+TODO UPDATE
 A `PNSystem` that contains information as variables from
 [`FastDifferentiation.jl`](https://docs.juliahub.com/General/FastDifferentiation/stable/).
 
@@ -298,19 +294,39 @@ also involves the type `NT`, which will be the numeric type of actual numbers th
 get fed into (and will be passed out from) functions that use this system.  The correct type
 of `FDPNSystem` is used in calculating `𝓔′`.
 """
-struct FDPNSystem{NT,PNOrder} <: PNSystem{FastDifferentiation.Node,Vector{FastDifferentiation.Node},PNOrder}
+struct FDPNSystem{NT,PN<:PNSystem{NT},PNOrder} <: PNSystem{FastDifferentiation.Node,Vector{FastDifferentiation.Node},PNOrder}
     state::Vector{FastDifferentiation.Node}
-    Λ₁::FastDifferentiation.Node
-    Λ₂::FastDifferentiation.Node
 
-    function FDPNSystem(NT, PNOrder=typemax(Int))
-        FastDifferentiation.@variables M₁ M₂ χ⃗₁ˣ χ⃗₁ʸ χ⃗₁ᶻ χ⃗₂ˣ χ⃗₂ʸ χ⃗₂ᶻ Rʷ Rˣ Rʸ Rᶻ v Φ Λ₁ Λ₂
-        return new{NT,prepare_pn_order(PNOrder)}(
-            [M₁, M₂, χ⃗₁ˣ, χ⃗₁ʸ, χ⃗₁ᶻ, χ⃗₂ˣ, χ⃗₂ʸ, χ⃗₂ᶻ, Rʷ, Rˣ, Rʸ, Rᶻ, v, Φ], Λ₁, Λ₂
-        )
+    function FDPNSystem(::Type{PN}, PNOrder=typemax(Int)) where {NT,PN<:PNSystem{NT}}
+        return new{NT,PN,prepare_pn_order(PNOrder)}([FastDifferentiation.Node(s) for s ∈ symbols(PN)])
     end
 end
-Base.eltype(::FDPNSystem{NT}) where {NT} = NT
+
+state(pnsystem::FDPNSystem) = pnsystem.state
+
+symbols(pnsystem::FDPNSystem{NT,PN,PNOrder}) where {NT,PN,PNOrder} = symbols(PN)
+symbols(::Type{T}) where {NT,PN,PNOrder,T<:FDPNSystem{NT,PN,PNOrder}} = symbols(PN)
+
+function symbol_index(pnsystem::FDPNSystem{NT,PN,PNOrder}, s::Symbol) where {NT,PN,PNOrder}
+    symbol_index(PN, Val(s))
+end
+function symbol_index(::Type{T}, ::Val{S}) where {T<:FDPNSystem,S}
+    index = findfirst(y -> y == S, symbols(T))
+    if isnothing(index)
+        index = findfirst(y -> y == S, ascii_symbols(T))
+    end
+    if isnothing(index)
+        error(
+            "Type `$(T)` has no symbol `:$(S)`.\n" *
+            "This type's symbols are `$(symbols(T))`.\n" *
+            "The ASCII equivalents are `$(ascii_symbols(T))`.\n",
+        )
+    else
+        index
+    end
+end
+
+#Base.eltype(::FDPNSystem{NT}) where {NT} = NT
 
 """
     fd_pnsystem
@@ -339,7 +355,7 @@ julia> χ⃗₂(fd_pnsystem)
  + χ⃗₂ˣ𝐢 + χ⃗₂ʸ𝐣 + χ⃗₂ᶻ𝐤
 ```
 """
-const fd_pnsystem = FDPNSystem(Float64)
+#const fd_pnsystem = FDPNSystem(Float64)
 
 function StaticArrays.SVector(pnsystem::PNSystem)
     return SVector{16,eltype(pnsystem)}(

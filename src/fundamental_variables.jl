@@ -1,7 +1,7 @@
 module FundamentalVariables
 
 using ..PostNewtonian
-using ..PostNewtonian: PNSystem, BHNS, NSNS, FDPNSystem
+using ..PostNewtonian: PNSystem, BBH, BHNS, NSNS, FDPNSystem, symbols
 using ..PostNewtonian: M₁index, M₂index, χ⃗₁indices, χ⃗₂indices, Rindices, vindex, Φindex
 using Quaternionic: Quaternionic, QuatVec, Rotor
 
@@ -17,8 +17,10 @@ export M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, Λ₁, Λ₂, M1, M2, chi1, chi
 
 Mass of object 1 in this system.
 """
-M₁(s::PNSystem) = M₁(s.state)
-M₁(state::AbstractVector) = @inbounds state[M₁index]
+function M₁(::T) where {T<:PNSystem}
+    error("M₁ is not (yet) defined for PNSystem subtype `$T`.")
+end
+M₁(fdpnsystem::FDPNSystem) = fdpnsystem[:M₁]
 const M1 = M₁
 
 """
@@ -89,8 +91,12 @@ as a keyword argument — as in `v(Ω=0.1)`.
 
 See also [`Ω`](@ref).
 """
-#v(s::PNSystem) = v(s.state)
-#v(state::AbstractVector) = @inbounds state[vindex]
+# v(s::PNSystem) = v(s.state)
+# v(state::AbstractVector) = @inbounds state[vindex]
+function v(::T) where {T<:PNSystem}
+    error("v is not (yet) defined for PNSystem subtype `$T`.")
+end
+#v(fdpnsystem::FDPNSystem) = fdpnsystem[:v]
 v(; Ω, M=1) = ∛(M * Ω)
 
 """
@@ -159,5 +165,50 @@ See also [`Λ₁`](@ref) and [`Λ̃`](@ref).
 #Λ₂(pn::NSNS) = pn.Λ₂
 #Λ₂(pn::FDPNSystem) = pn.Λ₂
 const Lambda2 = Λ₂
+
+############################################################
+# TODO This got moved here out of pn_systems.jl
+for (i, symbol) ∈ enumerate(symbols(BBH))
+    # This will define, e.g., `M₁(pnsystem::BBH) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval PostNewtonian.FundamentalVariables begin
+        $(symbol)(pnsystem::BBH) = @inbounds pnsystem.state[$i]
+        $(symbol)(pnsystem::FDPNSystem{NT,BBH{NT,ST,PNOrder},PNOrder}) where {NT,ST,PNOrder} = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BBH}
+            $i
+        end
+    end
+end
+
+Λ₁(pnsystem::BBH) = zero(pnsystem)
+Λ₂(pnsystem::BBH) = zero(pnsystem)
+
+for (i, symbol) ∈ enumerate(symbols(BHNS))
+    # This will define, e.g., `M₁(pnsystem::BHNS) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval PostNewtonian.FundamentalVariables begin
+        $(symbol)(pnsystem::BHNS) = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BHNS}
+            $i
+        end
+    end
+end
+
+Λ₁(pnsystem::BHNS) = zero(pnsystem)
+#Λ₂(pnsystem::BHNS) = @inbounds pnsystem.state[15]
+
+for (i, symbol) ∈ enumerate(symbols(NSNS))
+    # This will define, e.g., `M₁(pnsystem::NSNS) = pnsystem.state[1]`.  We
+    # could do this manually, but this is more concise and less error-prone.
+    @eval PostNewtonian.FundamentalVariables begin
+        $(symbol)(pnsystem::NSNS) = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:NSNS}
+            $i
+        end
+    end
+end
+
+#Λ₁(pnsystem::NSNS) = @inbounds pnsystem.state[15]
+#Λ₂(pnsystem::NSNS) = @inbounds pnsystem.state[16]
 
 end

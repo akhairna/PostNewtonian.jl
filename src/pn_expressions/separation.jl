@@ -185,7 +185,7 @@ from the Newton iterations in [`γₚₙ′`](@ref).
 ) where {NT,ST,PNOrder,PNExpansionReducer}
     # Create a `PNSystem` with `FastDifferentiation` (henceforth FD) variables, using the
     # same PNOrder as the input `pnsystem`.
-    fdpnsystem = FDPNSystem(NT, PNOrder)
+    fdpnsystem = FDPNSystem(PN, NT, PNOrder)
 
     # FD expects a single vector of variables, so we concatenate the state vector with the
     # two tidal-coupling parameters

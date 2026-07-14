@@ -422,7 +422,7 @@ Base.@constprop :aggressive function orbital_evolution(
 
     Rᵢ = Rotor(Rᵢ)
 
-    vᵢ = v(; Ω=Ωᵢ, M=M₁ + M₂)
+    vᵢ = PostNewtonian.v(; Ω=Ωᵢ, M=M₁ + M₂)
     if vᵢ ≥ 1
         error(
             "The input Ωᵢ=$Ωᵢ is too large; with these masses, it corresponds to\n" *
@@ -460,8 +460,8 @@ Base.@constprop :aggressive function orbital_evolution(
         )
     end
 
-    v₁ = v(; Ω=Ω₁, M=M₁ + M₂)
-    vₑ = min(v(; Ω=Ωₑ, M=M₁ + M₂), 1)
+    v₁ = PostNewtonian.v(; Ω=Ω₁, M=M₁ + M₂)
+    vₑ = min(PostNewtonian.v(; Ω=Ωₑ, M=M₁ + M₂), 1)
     Φ = 0
 
     # Initial conditions for the ODE integration
