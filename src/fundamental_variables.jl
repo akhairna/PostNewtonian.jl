@@ -1,8 +1,8 @@
 module FundamentalVariables
 
 using ..PostNewtonian
-using ..PostNewtonian: PNSystem, BBH, BHNS, NSNS, FDPNSystem, symbols
-using ..PostNewtonian: M₁index, M₂index, χ⃗₁indices, χ⃗₂indices, Rindices, vindex, Φindex
+using ..PostNewtonian: PNSystem, QuasisphericalBBH, BHNS, NSNS, FDPNSystem, symbols
+# using ..PostNewtonian: M₁index, M₂index, χ⃗₁indices, χ⃗₂indices, Rindices, vindex, Φindex
 using Quaternionic: Quaternionic, QuatVec, Rotor
 
 export M₁, M₂, χ⃗₁, χ⃗₂, R, v, Φ, Λ₁, Λ₂, M1, M2, chi1, chi2, Phi, Lambda1, Lambda2
@@ -168,20 +168,20 @@ const Lambda2 = Λ₂
 
 ############################################################
 # TODO This got moved here out of pn_systems.jl
-for (i, symbol) ∈ enumerate(symbols(BBH))
+for (i, symbol) ∈ enumerate(symbols(QuasisphericalBBH))
     # This will define, e.g., `M₁(pnsystem::BBH) = pnsystem.state[1]`.  We
     # could do this manually, but this is more concise and less error-prone.
     @eval PostNewtonian.FundamentalVariables begin
-        $(symbol)(pnsystem::BBH) = @inbounds pnsystem.state[$i]
-        $(symbol)(pnsystem::FDPNSystem{NT,BBH{NT,ST,PNOrder},PNOrder}) where {NT,ST,PNOrder} = @inbounds pnsystem.state[$i]
-        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:BBH}
+        $(symbol)(pnsystem::QuasisphericalBBH) = @inbounds pnsystem.state[$i]
+        $(symbol)(pnsystem::FDPNSystem{NT,QuasisphericalBBH{NT,ST,PNOrder},PNOrder}) where {NT,ST,PNOrder} = @inbounds pnsystem.state[$i]
+        function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:QuasisphericalBBH}
             $i
         end
     end
 end
 
-Λ₁(pnsystem::BBH) = zero(pnsystem)
-Λ₂(pnsystem::BBH) = zero(pnsystem)
+# Λ₁(pnsystem::BBH) = zero(pnsystem)
+# Λ₂(pnsystem::BBH) = zero(pnsystem)
 
 for (i, symbol) ∈ enumerate(symbols(BHNS))
     # This will define, e.g., `M₁(pnsystem::BHNS) = pnsystem.state[1]`.  We
