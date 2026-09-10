@@ -62,6 +62,9 @@ export BHNS
 include("pn_systems/NSNS.jl")
 export NSNS, BNS
 
+include("pn_systems/Quasispherical.jl")
+export QuasisphericalSystem
+
 include("pn_expansion.jl")
 export PNExpansion, PNTerm, PNExpansionParameter
 

@@ -42,8 +42,6 @@ end
     return nothing
 end
 
-const QuasisphericalSystem = Union{BBH, BHNS, NSNS}
-
 function symbol_cache(::Type{pnsystem}) where {pnsystem<:PNSystem}
     SymbolCache(collect(symbols(pnsystem)), nothing, :t)
 end
