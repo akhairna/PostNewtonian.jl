@@ -63,6 +63,10 @@ Base.isdone(pnsystem::PNSystem, iterstate) = Base.isdone(state(pnsystem), iterst
 
 # Base.getindex(pnsystem::PNSystem, i::Int) = Base.@propagate_inbounds getindex(state(pnsystem), i)
 #Base.setindex!(pn::PNSystem, v, i::Int) = Base.@propagate_inbounds setindex!(state(pn), v, i)
+
+Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, s::Symbol) = getindex(state(pnsystem), symbol_index(typeof(pnsystem), Val(s)))
+Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, s::Symbol) = setindex!(state(pnsystem), v, symbol_index(typeof(pnsystem), Val(s)))
+
 Base.firstindex(pnsystem::PNSystem) = firstindex(state(pnsystem))
 Base.lastindex(pnsystem::PNSystem) = lastindex(state(pnsystem))
 Base.eachindex(pnsystem::PNSystem) = eachindex(state(pnsystem))
@@ -78,6 +82,16 @@ function Base.unsafe_convert(::Type{Ptr{T}}, A::PNSystem) where {T}
 end
 Base.elsize(::Type{<:PNSystem{T}}) where {T} = sizeof(T)
 Base.stride(pnsystem::PNSystem, k::Int) = stride(state(pnsystem), k)
+
+struct SymbolRange
+    start::Symbol
+    stop::Symbol
+end
+
+Base.:(:)(start::Symbol, stop::Symbol) = SymbolRange(start, stop)
+
+Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, range::SymbolRange) = getindex(state(pnsystem), symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
+Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, range::SymbolRange) = setindex!(state(pnsystem), v, symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
 
 """
     pn_order(pnsystem::PNSystem)
@@ -119,7 +133,7 @@ Currently, the only check that is done is to test that these parameters result i
 parameter v>0.  In the future, this function may be expanded to include other checks.
 """
 function causes_domain_error!(u̇, p::PNSystem{NT}) where {NT}
-    if p.state[symbol_index(typeof(p), Val(:v))] ≤ 0  # If this is expanded, document the change in the docstring.
+    if p[:v] ≤ 0  # If this is expanded, document the change in the docstring.
         u̇ .= convert(NT, NaN)
         true
     else
