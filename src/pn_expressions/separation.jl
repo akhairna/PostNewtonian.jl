@@ -354,7 +354,7 @@ function γₚₙ⁻¹(γ, pnsystem, r₀′=0)
         #   f(v) = γₚₙ(pnsystemᵥ) - γ
         # with
         #   f′(v) = γₚₙ′(pnsystemᵥ)
-        pnsystemᵥ.state[symbol_index(typeof(pnsystemᵥ), Val(:v))] = v
+        pnsystemᵥ[:v] = v
         γᵥ = γₚₙ(pnsystemᵥ, r₀′)
         γᵥ′ = γₚₙ′(pnsystemᵥ)
         return -((γᵥ - γ) / γᵥ′)

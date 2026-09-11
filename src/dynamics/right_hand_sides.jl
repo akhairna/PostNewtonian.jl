@@ -37,7 +37,7 @@ end
     Ṙ = Ω⃗ * R / 2
     for (sym, rhs) ∈ zip((:M₁,:M₂,:χ⃗₁ˣ,:χ⃗₁ʸ,:χ⃗₁ᶻ,:χ⃗₂ˣ,:χ⃗₂ʸ,:χ⃗₂ᶻ,:Rʷ,:Rˣ,:Rʸ,:Rᶻ,:v,:Φ),
                          (Ṁ₁,Ṁ₂,χ⃗̇₁.x,χ⃗̇₁.y,χ⃗̇₁.z,χ⃗̇₂.x,χ⃗̇₂.y,χ⃗̇₂.z,Ṙ.w,Ṙ.x,Ṙ.y,Ṙ.z,v̇,Ω))
-        u̇[symbol_index(typeof(pnsystem), Val(sym))] = rhs
+        u̇[symbol_index(typeof(pnsystem), sym)] = rhs
     end
     return nothing
 end

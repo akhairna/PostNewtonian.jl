@@ -17,11 +17,11 @@ function termination_forwards(PNType, vₑ, quiet=false)
 
     # NOTE These are very specific to quasicircular; have to generalize for eccentric
     function conditions(out, state, t, integrator)
-        out[1] = state[symbol_index(PNType, Val(:M₁))] # Terminate if M₁ ≤ 0
-        out[2] = state[symbol_index(PNType, Val(:M₂))]  # Terminate if M₂ ≤ 0
-        out[3] = 1 - sum(abs2, state[symbol_index(PNType, Val(:χ⃗₁ˣ)) : symbol_index(PNType, Val(:χ⃗₁ᶻ))]) # Terminate if χ₁ > 1
-        out[4] = 1 - sum(abs2, state[symbol_index(PNType, Val(:χ⃗₂ˣ)) : symbol_index(PNType, Val(:χ⃗₂ᶻ))]) # Terminate if χ₂ > 1
-        return out[5] = vₑ - state[symbol_index(PNType, Val(:v))] # Terminate at v = vₑ
+        out[1] = state[symbol_index(PNType, :M₁)] # Terminate if M₁ ≤ 0
+        out[2] = state[symbol_index(PNType, :M₂)]  # Terminate if M₂ ≤ 0
+        out[3] = 1 - sum(abs2, state[symbol_index(PNType, :χ⃗₁ˣ) : symbol_index(PNType, :χ⃗₁ᶻ)]) # Terminate if χ₁ > 1
+        out[4] = 1 - sum(abs2, state[symbol_index(PNType, :χ⃗₂ˣ) : symbol_index(PNType, :χ⃗₂ᶻ)]) # Terminate if χ₂ > 1
+        return out[5] = vₑ - state[symbol_index(PNType, :v)] # Terminate at v = vₑ
     end
     function terminator!(integrator, event_index)
         if event_index == 1
@@ -62,11 +62,11 @@ reasons.
 """
 function termination_backwards(PNType, v₁, quiet=false)
     function terminators_backwards(out, state, t, integrator)
-        out[1] = state[symbol_index(PNType, Val(:M₁))]  # Terminate if M₁ ≤ 0
-        out[2] = state[symbol_index(PNType, Val(:M₂))]  # Terminate if M₂ ≤ 0
-        out[3] = 1 - sum(abs2, state[symbol_index(PNType, Val(:χ⃗₁ˣ)) : symbol_index(PNType, Val(:χ⃗₁ᶻ))])  # Terminate if χ₁ > 1
-        out[4] = 1 - sum(abs2, state[symbol_index(PNType, Val(:χ⃗₂ˣ)) : symbol_index(PNType, Val(:χ⃗₂ᶻ))])  # Terminate if χ₂ > 1
-        return out[5] = v₁ - state[symbol_index(PNType, Val(:v))]  # Terminate at v = v₁
+        out[1] = state[symbol_index(PNType, :M₁)]  # Terminate if M₁ ≤ 0
+        out[2] = state[symbol_index(PNType, :M₂)]  # Terminate if M₂ ≤ 0
+        out[3] = 1 - sum(abs2, state[symbol_index(PNType, :χ⃗₁ˣ) : symbol_index(PNType, :χ⃗₁ᶻ)])  # Terminate if χ₁ > 1
+        out[4] = 1 - sum(abs2, state[symbol_index(PNType, :χ⃗₂ˣ) : symbol_index(PNType, :χ⃗₂ᶻ)])  # Terminate if χ₂ > 1
+        return out[5] = v₁ - state[symbol_index(PNType, :v)]  # Terminate at v = v₁
     end
     function terminator_backwards!(integrator, event_index)
         if event_index == 1
@@ -112,7 +112,7 @@ function dtmin_terminator(PNType, T, quiet=false)
         (state, t, integrator) -> abs(integrator.dt) < sqrtϵ
     end
     function discrete_terminator!(integrator)
-        v = integrator.u[symbol_index(PNType, Val(:v))]
+        v = integrator.u[symbol_index(PNType, :v)]
         message = (
             "Terminating evolution because the time-step size has become very small:\n" *
             "|dt=$(integrator.dt)| < √ϵ=$(sqrtϵ)\n" *
@@ -146,11 +146,12 @@ issued; otherwise an `info` message will be issued only if the `quiet` flag is s
 """
 function decreasing_v_terminator(PNType, quiet=false)
     function discrete_condition(state, t, integrator)
-        return get_du(integrator)[symbol_index(PNType,Val(:v))] < 0  # This translates to v̇<0
+        # How come here I can't just write get_du(integrator)[:v] ?
+        return get_du(integrator)[symbol_index(PNType,:v)] < 0  # This translates to v̇<0
     end
     function discrete_terminator!(integrator)
-        v = integrator.u[symbol_index(PNType, Val(:v))]
-        ∂ₜv = get_du(integrator)[symbol_index(PNType, Val(:v))]
+        v = integrator.u[:v]
+        ∂ₜv = get_du(integrator)[:v]
         message = (
             "Terminating forwards evolution because 𝑣 is decreasing:\n" *
             "This is only unusual if 𝑣 ≲ 0.35; the current value is 𝑣=$v\n" *

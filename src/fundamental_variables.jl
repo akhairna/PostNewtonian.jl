@@ -39,7 +39,7 @@ const M2 = M₂
 
 Dimensionless spin vector of object 1 in this system, as a `QuatVec`.
 """
-χ⃗₁(s::T) where {T<:PNSystem} = @inbounds QuatVec(s.state[symbol_index(T, Val(:χ⃗₁ˣ)) : symbol_index(T, Val(:χ⃗₁ᶻ))])
+χ⃗₁(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[ :χ⃗₁ˣ : :χ⃗₁ᶻ ])
 
 const chi1 = χ⃗₁
 
@@ -49,7 +49,7 @@ const chi1 = χ⃗₁
 
 Dimensionless spin vector of object 2 in this system, as a `QuatVec`.
 """
-χ⃗₂(s::T) where {T<:PNSystem} = @inbounds QuatVec(s.state[symbol_index(T, Val(:χ⃗₂ˣ)) : symbol_index(T, Val(:χ⃗₂ᶻ))])
+χ⃗₂(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[ :χ⃗₂ˣ : :χ⃗₂ᶻ ])
 
 const chi2 = χ⃗₂
 
@@ -72,7 +72,7 @@ and ``ϖ`` is the precession angular frequency.
 See also [`n̂`](@ref PostNewtonian.n̂), [`λ̂`](@ref PostNewtonian.λ̂), [`ℓ̂`](@ref
 PostNewtonian.ℓ̂), [`Ω`](@ref PostNewtonian.Ω), and [`𝛡`](@ref PostNewtonian.𝛡)``=ϖ n̂``.
 """
-R(s::T) where {T<:PNSystem} = @inbounds Rotor(s.state[symbol_index(T, Val(:Rʷ)):symbol_index(T, Val(:Rᶻ))])
+R(s::T) where {T<:PNSystem} = @inbounds Rotor(s[ :Rʷ : :Rᶻ ])
 
 @doc raw"""
     v(pnsystem)
@@ -176,5 +176,7 @@ for PNT ∈ (BBH, BHNS, BNS)
         end
     end
 end
+
+symbol_index(t, s::Symbol) = symbol_index(t, Val(s))
 
 end

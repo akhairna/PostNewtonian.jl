@@ -73,7 +73,7 @@ function uniform_in_phase(solution, saves_per_orbit)
     let π = eltype(solution)(π)
         t = solution.t
         PNType = typeof(solution.prob.p)
-        Φ = solution[symbol_index(PNType, Val(:Φ)), :]
+        Φ = solution[:Φ, :]
         δΦ = 2π / saves_per_orbit
         Φrange = range(extrema(Φ)...; step=δΦ)
         t_Φ = CubicSpline(t, Φ)(Φrange)
@@ -584,7 +584,7 @@ Base.@constprop :aggressive function orbital_evolution(
         # NOTE this only makes sense for PN systems where v is a state
         # variable. That's not appropriate for eccentric PN, where it would be
         # better to use x as a state variable (or n)
-        pnsystem.state[symbol_index(typeof(pnsystem), Val(:v))] = v₁
+        pnsystem[:v] = v₁
         t₁ =
             -4 * (estimated_time_to_merger(pnsystem) - estimated_time_to_merger(pnsystemᵢ))
         if "saveat" ∈ keys(solve_kwargs) && solve_kwargs["saveat"] isa AbstractVector
