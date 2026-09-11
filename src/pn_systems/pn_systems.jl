@@ -17,6 +17,8 @@ expansions should be carried.
 """
 abstract type PNSystem{NT,ST<:DenseVector{NT},PNOrder} <: DenseVector{NT} end
 
+abstract type QuasisphericalSystem{NT,ST,PNOrder} <: PNSystem{NT,ST,PNOrder} end
+
 """
     state(pnsystem::PNSystem)
 

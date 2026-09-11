@@ -11,7 +11,7 @@ Optionally, `Φ` may also be tracked as the 14th element of the `state` vector. 
 the integral of the orbital angular frequency `Ω`, and holds little interest for general
 systems beyond a convenient description of how "far" the system has evolved.
 """
-struct BBH{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
+struct BBH{NT,ST<:DenseVector{NT},PNOrder} <: QuasisphericalSystem{NT,ST,PNOrder}
     state::ST
 
     BBH{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
@@ -21,7 +21,7 @@ struct BBH{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
         return new{NT,ST,PNOrder}(state)
     end
     function BBH(state; PNOrder=max_pn_order)
-        @assert length(state) == 14
+        @assert length(state) == length(symbols(BBH))
         return new{eltype(state),typeof(state),prepare_pn_order(PNOrder)}(state)
     end
 end

@@ -43,7 +43,7 @@ using TestItems: @testitem
 const ln = log
 
 include("pn_systems/pn_systems.jl")
-export PNSystem, pn_order
+export PNSystem, pn_order, QuasisphericalSystem
 
 include("utilities.jl")
 export termination_forwards,
@@ -61,9 +61,6 @@ export BHNS
 
 include("pn_systems/NSNS.jl")
 export NSNS, BNS
-
-include("pn_systems/Quasispherical.jl")
-export QuasisphericalSystem
 
 include("pn_expansion.jl")
 export PNExpansion, PNTerm, PNExpansionParameter
