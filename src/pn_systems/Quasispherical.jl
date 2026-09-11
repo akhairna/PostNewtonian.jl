@@ -1,1 +1,0 @@
-const QuasisphericalSystem = Union{BBH, BHNS, NSNS}

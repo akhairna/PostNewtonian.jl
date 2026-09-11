@@ -7,7 +7,7 @@ The `state` vector is the same as for a [`BBH`](@ref).  There are two additional
 and `Λ₂` holding the (constant) tidal-coupling parameters of the neutron stars.  See also
 [`BHNS`](@ref).
 """
-struct NSNS{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
+struct NSNS{NT,ST<:DenseVector{NT},PNOrder} <: QuasisphericalSystem{NT,ST,PNOrder}
     state::ST
 
     NSNS{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
@@ -16,7 +16,7 @@ struct NSNS{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
         return new{NT,ST,PNOrder}(state)
     end
     function NSNS(state; PNOrder=max_pn_order)
-        @assert length(state) == 16
+        @assert length(state) == length(symbols(NSNS))
         return new{eltype(state),typeof(state),prepare_pn_order(PNOrder)}(state)
     end
 end

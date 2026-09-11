@@ -9,7 +9,7 @@ holding the (constant) tidal-coupling parameter of the neutron star.
 Note that the neutron star is *always* object 2 — meaning that `M₂`, `χ⃗₂`, and `Λ₂` always
 refer to it; `M₁` and `χ⃗₁` always refer to the black hole.  See also [`NSNS`](@ref).
 """
-struct BHNS{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
+struct BHNS{NT,ST<:DenseVector{NT},PNOrder} <: QuasisphericalSystem{NT,ST,PNOrder}
     state::ST
     Λ₂::NT
     BHNS{NT,ST,PNOrder}(state) where {NT,ST,PNOrder} = new{NT,ST,PNOrder}(state)
@@ -18,7 +18,7 @@ struct BHNS{NT,ST<:DenseVector{NT},PNOrder} <: PNSystem{NT,ST,PNOrder}
         return new{NT,ST,PNOrder}(state)
     end
     function BHNS(state; PNOrder=max_pn_order)
-        @assert length(state) == 15
+        @assert length(state) == length(symbols(BHNS))
         return new{eltype(state),typeof(state),prepare_pn_order(PNOrder)}(state)
     end
 end
