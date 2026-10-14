@@ -27,8 +27,9 @@ struct BBH{NT,ST<:DenseVector{NT},PNOrder} <: QuasisphericalSystem{NT,ST,PNOrder
 end
 const BHBH = BBH
 
-function pack_state(::Type{<:BBH}; M₁, M₂, χ⃗₁, χ⃗₂, R=Rotor(1), v, Φ=0)
-    [M₁; M₂; vec(QuatVec(χ⃗₁)); vec(QuatVec(χ⃗₂)); components(Rotor(R)); v; Φ]
+function pack_state(t::Type{<:BBH}; M₁, M₂, χ⃗₁, χ⃗₂, R=Rotor(1), v, Φ=0)
+    symbols_tuple = NamedTuple{symbols(t)}([M₁; M₂; vec(QuatVec(χ⃗₁)); vec(QuatVec(χ⃗₂)); components(Rotor(R)); v; Φ])
+    ComponentArray(symbols_tuple)
 end
 
 state(pnsystem::BBH) = pnsystem.state

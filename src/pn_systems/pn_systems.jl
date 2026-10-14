@@ -61,14 +61,12 @@ Base.isdone(pnsystem::PNSystem, iterstate) = Base.isdone(state(pnsystem), iterst
 
 # Indexing
 
-#Base.setindex!(pn::PNSystem, v, i::Int) = Base.@propagate_inbounds setindex!(state(pn), v, i)
-
 Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, i::Int) = getindex(state(pnsystem), i)
-Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, s::Symbol) = getindex(state(pnsystem), symbol_index(typeof(pnsystem), Val(s)))
-Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, s::Symbol) = setindex!(state(pnsystem), v, symbol_index(typeof(pnsystem), Val(s)))
+Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, s::Symbol) = getindex(state(pnsystem), s)
+Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, s::Symbol) = setindex!(state(pnsystem), v, s)
 
-Base.firstindex(pnsystem::PNSystem) = firstindex(state(pnsystem))
-Base.lastindex(pnsystem::PNSystem) = lastindex(state(pnsystem))
+# Base.firstindex(pnsystem::PNSystem) = firstindex(state(pnsystem))
+# Base.lastindex(pnsystem::PNSystem) = lastindex(state(pnsystem))
 Base.eachindex(pnsystem::PNSystem) = eachindex(state(pnsystem))
 # Abstract arrays
 Base.IndexStyle(::Type{T}) where {T<:PNSystem} = Base.IndexLinear()
@@ -83,15 +81,15 @@ end
 Base.elsize(::Type{<:PNSystem{T}}) where {T} = sizeof(T)
 Base.stride(pnsystem::PNSystem, k::Int) = stride(state(pnsystem), k)
 
-struct SymbolRange
-    start::Symbol
-    stop::Symbol
-end
+# struct SymbolRange
+#     start::Symbol
+#     stop::Symbol
+# end
 
-Base.:(:)(start::Symbol, stop::Symbol) = SymbolRange(start, stop)
+# Base.:(:)(start::Symbol, stop::Symbol) = SymbolRange(start, stop)
 
-Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, range::SymbolRange) = getindex(state(pnsystem), symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
-Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, range::SymbolRange) = setindex!(state(pnsystem), v, symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
+# Base.@propagate_inbounds Base.getindex(pnsystem::PNSystem, range::SymbolRange) = getindex(state(pnsystem), symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
+# Base.@propagate_inbounds Base.setindex!(pnsystem::PNSystem, v, range::SymbolRange) = setindex!(state(pnsystem), v, symbol_index(typeof(pnsystem), Val(range.start)):symbol_index(typeof(pnsystem), Val(range.stop)))
 
 """
     pn_order(pnsystem::PNSystem)

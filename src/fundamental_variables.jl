@@ -38,7 +38,7 @@ const M2 = M₂
 
 Dimensionless spin vector of object 1 in this system, as a `QuatVec`.
 """
-χ⃗₁(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[ :χ⃗₁ˣ : :χ⃗₁ᶻ ])
+χ⃗₁(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[[:χ⃗₁ˣ, :χ⃗₁ʸ, :χ⃗₁ᶻ]])
 
 const chi1 = χ⃗₁
 
@@ -48,7 +48,7 @@ const chi1 = χ⃗₁
 
 Dimensionless spin vector of object 2 in this system, as a `QuatVec`.
 """
-χ⃗₂(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[ :χ⃗₂ˣ : :χ⃗₂ᶻ ])
+χ⃗₂(s::T) where {T<:PNSystem} = @inbounds QuatVec(s[[:χ⃗₂ˣ, :χ⃗₂ʸ, :χ⃗₂ᶻ]])
 
 const chi2 = χ⃗₂
 
@@ -71,7 +71,7 @@ and ``ϖ`` is the precession angular frequency.
 See also [`n̂`](@ref PostNewtonian.n̂), [`λ̂`](@ref PostNewtonian.λ̂), [`ℓ̂`](@ref
 PostNewtonian.ℓ̂), [`Ω`](@ref PostNewtonian.Ω), and [`𝛡`](@ref PostNewtonian.𝛡)``=ϖ n̂``.
 """
-R(s::T) where {T<:PNSystem} = @inbounds Rotor(s[ :Rʷ : :Rᶻ ])
+R(s::T) where {T<:PNSystem} = @inbounds Rotor(s[[:Rʷ, :Rˣ, :Rʸ, :Rᶻ]])
 
 @doc raw"""
     v(pnsystem)
@@ -164,14 +164,14 @@ for PNT ∈ (BBH, BHNS, NSNS)
         # This will define, e.g., `M₁(pnsystem::BBH) = pnsystem.state[1]`.  We
         # could do this manually, but this is more concise and less error-prone.
         @eval PostNewtonian.FundamentalVariables begin
-            $(symbol)(pnsystem::$PNT) = @inbounds pnsystem.state[$i]
-            function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:$PNT}
-                $i
-            end
+            $(symbol)(pnsystem::$PNT) = @inbounds pnsystem[$(QuoteNode(symbol))]
+            # function symbol_index(::Type{T}, ::Val{Symbol($symbol)}) where {T<:$PNT}
+            #     $i
+            # end
         end
     end
 end
 
-symbol_index(t, s::Symbol) = symbol_index(t, Val(s))
+# symbol_index(t, s::Symbol) = symbol_index(t, Val(s))
 
 end
